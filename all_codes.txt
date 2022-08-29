@@ -1,0 +1,301 @@
+#include <SoftwareSerial.h>
+SoftwareSerial gprsSerial(18,19);
+int irPin1=4;
+int irPin2=5;
+int count=0;
+int check=0;
+int sc=12;
+void countcheck(int count);
+boolean state1 = true;
+boolean state2 = true;
+boolean insideState = false;
+boolean outsideIr=false;
+boolean isPeopleExiting=false;
+int i=1;
+#include <String.h>
+/*#include <SoftwareSerial.h>
+
+//Install the following Libraries
+#include <TinyGPS++.h> //https://github.com/mikalhart/TinyGPSPlus
+#include <ESP32WiFi.h>
+
+//GPS Module RX pin to NodeMCU D1
+//GPS Module TX pin to NodeMCU D2
+const int RXPin = 4, TXPin = 5;
+SoftwareSerial gps(RXPin, TXPin);
+
+TinyGPSPlus 
+GPS;
+             
+const char *ssid = "Aiet main campus"
+String GMAP_API_KEY = "AIzaSyDTee6DxfX1-bB1o5juG-Bny-i3bMBwUBw";
+
+WiFiServer server(80);
+
+String html;*/
+void setup() {
+    gprsSerial.begin(9600); 
+Serial.begin(9600);
+pinMode(irPin1, INPUT);
+pinMode(irPin2, INPUT);
+pinMode(sc,INPUT);
+/*Serial.begin(115200);
+  Serial.println();
+  neo6m.begin(9600);
+
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");    // this is the address to use for viewing the map
+    Serial.println(WiFi.localIP());
+    server.begin();*/
+
+}
+void loop() {  
+   check==count;
+  while(digitalRead(sc)==HIGH){
+    
+  
+ 
+  if (!digitalRead(irPin1) && i==1 && state1 && insideState)
+  {
+     
+     Serial.println("Entering inside the bus");
+      count++; 
+     Serial.print("No. of people inside bus: ");
+     Serial.println(count);
+     insideState = false;
+     state1 = false;
+     if(count > 10){
+           Serial.println("bus overloaded");
+     }
+     delay(1000);
+  } else if (!digitalRead(irPin1) && i==1  && state1 && !insideState){
+     delay(200);
+     i++;
+    state1 = false;
+  }
+   else if (!digitalRead(irPin2) && i==1 && state2){
+     delay(100);
+    insideState = true;
+     state2 = false;
+  }
+  else if (!digitalRead(irPin2) && i==2 && state2 ){
+     Serial.println("Exiting from bus");
+     delay(500);
+     count--;
+       Serial.print("No. of people inside bus: ");
+       Serial.println(count);
+     i = 1;
+     state1 = false;
+  } 
+    if (digitalRead(irPin1)){
+     state1 = true;
+    }
+     if (digitalRead(irPin2)){
+     state2 = true;
+    }  
+  }
+    if(check!=count)
+    countcheck(count);
+    
+}
+void countcheck(int count)
+{
+  if (gprsSerial.available())
+    Serial.write(gprsSerial.read());
+ 
+  gprsSerial.println("AT");
+  delay(100);
+ 
+  gprsSerial.println("AT+CPIN?");
+  delay(100);
+ 
+  gprsSerial.println("AT+CREG?");
+  delay(100);
+ 
+  gprsSerial.println("AT+CGATT?");
+  delay(100);
+ 
+  gprsSerial.println("AT+CIPSHUT");
+  delay(100);
+ 
+  gprsSerial.println("AT+CIPSTATUS");
+  delay(100);
+ 
+  gprsSerial.println("AT+CIPMUX=0");
+  delay(100);
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CSTT=\"airtelgprs.com\"");//start task and setting the APN,
+  delay(100);
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CIICR");//bring up wireless connection
+  delay(100);
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CIFSR");//get local IP adress
+  delay(100);
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CIPSPRT=0");
+  delay(100);
+ 
+  ShowSerialData();
+  
+  gprsSerial.println("AT+CIPSTART=\"TCP\",\"api.thingspeak.com\",\"80\"");//start up the connection
+  delay(100);
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CIPSEND");//begin send data to remote server
+  delay(100);
+  ShowSerialData();
+  
+  String str="GET https://api.thingspeak.com/update?api_key=DBT06BJSJT2YMT95&field1=" + String(count);
+  Serial.println(str);
+  gprsSerial.println(str);//begin send data to remote server
+  
+  delay(100);
+  ShowSerialData();
+ 
+  gprsSerial.println((char)26);//sending
+  delay(100);//waitting for reply, important! the time is base on the condition of internet 
+  gprsSerial.println();
+ 
+  ShowSerialData();
+ 
+  gprsSerial.println("AT+CIPSHUT");//close the connection
+  delay(100);
+  ShowSerialData();
+} 
+void ShowSerialData()
+{
+  while(gprsSerial.available()!=0)
+  Serial.write(gprsSerial.read());
+  delay(2500); 
+  
+}
+/*smartdelay_gps(1000);
+  
+  if (gps.location.isValid()) 
+  {
+    //Storing the Latitude. and Longitude
+    String latitude = String(gps.location.lat(), 6);
+    String longitude = String(gps.location.lng(), 6); 
+    
+    //Send to Serial Monitor for Debugging
+    //Serial.print("LAT:  ");
+    //Serial.println(latitude);  // float to x decimal places
+    //Serial.print("LONG: ");
+    //Serial.println(longitude);
+
+    // listen for incoming clients
+    WiFiClient client = server.available();
+    if(client) {                             
+    Serial.println("new client");          
+    String currentLine = "";                // make a String to hold incoming data from the client
+    while (client.connected()) {            
+      if (client.available()) {             // if there's client data
+        char c = client.read();          // read a byte
+          if (c == '\n') {                      // check for newline character,
+          if (currentLine.length() == 0) {  // if line is blank it means its the end of the client HTTP request
+      
+    
+    html="<!DOCTYPE html>";
+    html+="<html lang='en'>";
+    html+="<head>";
+    html+="<meta charset='UTF-8'>";
+    html+="<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+    html+="<meta http-equiv='X-UA-Compatible' content='ie=edge'>";
+    html+="<title>My Google Map</title>";
+    html+="<style>#map{height:400px;width:100%;}</style>";
+    html+="</head>";
+    html+="<body>";
+    html+="<h1>My Google Map</h1>";
+    html+="<div id='map'></div>";
+    html+="<script>";
+
+    html+="var map;";
+    html+="var marker;";
+    
+    //5000ms means 5000/1000 = 5 Seconds
+    //20000ms means 20000/1000 = 20 Seconds
+    html+="var INTERVAL = 5000;";
+    
+    html+="function initMap(){";
+      
+      html+="var options = {";
+          html+="zoom:16,";
+          html+="center:{lat:"+latitude+",lng:"+longitude+"},";
+          html+="mapTypeId: google.maps.MapTypeId.ROADMAP,";
+      html+="};";
+      
+      html+="map = new google.maps.Map(document.getElementById('map'), options);";
+    html+="}";
+  
+    html+="function getMarkers() {";
+      //html+="console.log("+latitude+");";
+      //html+="console.log("+longitude+");";
+      
+      html+="var newLatLng = new google.maps.LatLng("+latitude+", "+longitude+");";
+     
+      html+="marker = new google.maps.Marker({";
+        html+="position: newLatLng,";
+        html+="map: map";
+      html+="});";
+    
+    html+="}";
+    
+
+   
+    html+="window.setInterval(getMarkers,INTERVAL);";
+    
+    html+="</script>";
+    html+="<script async defer src='https://maps.googleapis.com/maps/api/js?key="+GMAP_API_KEY+"&callback=initMap'>";
+    html+="</script>";
+    html+="</body></html>";
+  
+ 
+ client.print(html);
+
+            // The HTTP response ends with another blank line:
+            client.println();
+            // break out of the while loop:
+            break;
+          } else {   currentLine = ""; }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c; // add it to the end of the currentLine
+        }
+         // here you can check for any keypresses if your web server page has any
+      }
+    }
+    // close the connection:
+    client.stop();
+    Serial.println("client disconnected");
+    }    
+  }
+}
+
+static void smartdelay_gps(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+    while (neo6m.available())
+      gps.encode(neo6m.read());
+  } while (millis() - start < ms);
+}*/;
+const char *password = "Arya@5432100";
